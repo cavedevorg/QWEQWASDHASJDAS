@@ -1,0 +1,79 @@
+name: Build PrecTV Extension
+
+on:
+  push:
+    branches: [ main, master ]
+    paths-ignore:
+      - '**.md'
+      - '**.json'
+      - '**.txt'
+  workflow_dispatch:
+
+concurrency:
+  group: "build"
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v3
+        with:
+          path: src
+
+      - name: Checkout builds branch
+        uses: actions/checkout@v3
+        with:
+          ref: builds
+          path: builds
+
+      - name: Clean old builds
+        run: |
+          rm -f $GITHUB_WORKSPACE/builds/*.cs3 || true
+          rm -f $GITHUB_WORKSPACE/builds/plugins.json || true
+
+      - name: Setup JDK 17
+        uses: actions/setup-java@v3
+        with:
+          java-version: 17
+          distribution: 'temurin'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Clone Cloudstream Extensions
+        run: |
+          cd $GITHUB_WORKSPACE
+          git clone https://codeberg.org/cloudstream/cloudstream-extensions.git extensions
+
+      - name: Copy PrecTVProvider to extensions
+        run: |
+          cp -r $GITHUB_WORKSPACE/src/* $GITHUB_WORKSPACE/extensions/PrecTVProvider/
+
+      - name: Setup build environment
+        run: |
+          cd $GITHUB_WORKSPACE/extensions
+          echo "sdk.dir=$ANDROID_HOME" > local.properties
+          echo "rootProject.name = \"CloudstreamPlugins\"" > settings.gradle.kts
+          echo "include(\"PrecTVProvider\")" >> settings.gradle.kts
+
+      - name: Build extension
+        run: |
+          cd $GITHUB_WORKSPACE/extensions
+          chmod +x gradlew
+          ./gradlew PrecTVProvider:make makePluginsJson --no-daemon
+
+      - name: Copy builds
+        run: |
+          cp $GITHUB_WORKSPACE/extensions/**/build/*.cs3 $GITHUB_WORKSPACE/builds/ || true
+          cp $GITHUB_WORKSPACE/extensions/build/plugins.json $GITHUB_WORKSPACE/builds/ || true
+
+      - name: Push to builds branch
+        run: |
+          cd $GITHUB_WORKSPACE/builds
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add .
+          git commit --amend -m "Build: $GITHUB_SHA" || git commit -m "Build: $GITHUB_SHA"
+          git push --force
