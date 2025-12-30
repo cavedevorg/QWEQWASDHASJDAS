@@ -1,0 +1,15 @@
+# GitHub'a Temiz Geçmiş ile Yeniden Yükle
+
+cd C:\Users\caveman\testm\PrecTVProvider
+
+# Remote varsa kaldır
+git remote remove origin
+
+# Yeniden ekle (KULLANICI_ADIN ile değiştir)
+git remote add origin https://github.com/KULLANICI_ADIN/PrecTVProvider.git
+
+# Main branch'e geç
+git branch -M main
+
+# FORCE PUSH - Eski geçmişi siler!
+git push -u origin main --force

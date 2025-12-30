@@ -1,0 +1,8 @@
+{
+  "name": "PrecTV Repository",
+  "description": "Türkçe dizi ve film platformu",
+  "manifestVersion": 1,
+  "pluginLists": [
+    "https://raw.githubusercontent.com/KULLANICI_ADIN/PrecTVProvider/builds/plugins.json"
+  ]
+}
